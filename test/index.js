@@ -126,4 +126,7 @@ describe('undo-buffer', function () {
 			expect(doc).to.have.property('a', i);
 		}
 	});
+
+	xit('should clear forward buffer when adding new states', () => {
+	});
 });
