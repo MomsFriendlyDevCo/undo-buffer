@@ -1,5 +1,5 @@
 const expect = require('chai').expect;
-const UndoBuffer = require('../src');
+const UndoBuffer = require('../');
 
 const generateUpdate = () => {
 	const before = { a: 1, b: 2, c: 3 };
@@ -22,7 +22,7 @@ describe('undo-buffer', function () {
 
 	it('should generate patch and store in reverse buffer', () => {
 		const { before, after } = generateUpdate();
-		sut.update(before, after);
+		sut.update(after, before);
 		expect(sut.reverse).to.be.an('array');
 		expect(sut.reverse[0]).to.have.property('a');
 		expect(sut.reverse[0]).to.have.property('c');
@@ -32,46 +32,42 @@ describe('undo-buffer', function () {
 	it('should remove from reverse buffer on undo', () => {
 		const delta = {
 			a: [
+				4,
 				1,
-				4
 			],
 			c: [
 				3,
-				0,
-				0
 			]
 		};
 		const { before, after } = generateUpdate();
 		expect(sut.reverse).to.not.deep.include(delta);
-		sut.update(before, after);
+		sut.update(after, before);
 		expect(sut.reverse).to.deep.include(delta);
 		const undone = sut.undo(after);
-		expect(undone).to.have.property('a', 1);
-		expect(undone).to.have.property('b', 2);
-		expect(undone).to.have.property('c', 3);
+		expect(undone).to.have.property('a', before.a);
+		expect(undone).to.have.property('b', before.b);
+		expect(undone).to.have.property('c', before.c);
 		expect(sut.reverse).to.not.deep.include(delta);
 	});
 
 	it('should remove from forward buffer on redo', () => {
 		const delta = {
 			a: [
+				4,
 				1,
-				4
 			],
 			c: [
 				3,
-				0,
-				0
 			]
 		};
 		const { before, after } = generateUpdate();
 		expect(sut.forward).to.not.deep.include(delta);
-		sut.update(before, after);
+		sut.update(after, before);
 		expect(sut.forward).to.not.deep.include(delta);
 		const undone = sut.undo(after);
 		const redone = sut.redo(undone);
-		expect(redone).to.have.property('a', 4);
-		expect(redone).to.have.property('b', 2);
+		expect(redone).to.have.property('a', after.a);
+		expect(redone).to.have.property('b', after.b);
 		expect(redone).to.not.have.property('c');
 		expect(sut.reverse).to.deep.include(delta);
 		expect(sut.forward).to.not.deep.include(delta);
@@ -89,7 +85,7 @@ describe('undo-buffer', function () {
 		sut.config.limit = 10;
 
 		for (let i = 0; i < 20; i++) {
-			sut.update({ a: i - 1 }, { a: i });
+			sut.update({ a: i }, { a: i - 1 });
 		}
 
 		for (let i = 19; i > 9; i--) {
@@ -107,7 +103,7 @@ describe('undo-buffer', function () {
 
 	it('should have no further redo at end', () => {
 		for (let i = 0; i < 20; i++) {
-			sut.update({ a: i - 1 }, { a: i });
+			sut.update({ a: i }, { a: i - 1 });
 		}
 		for (let i = 19; i > 9; i--) {
 			const doc = sut.undo({ a: i });
