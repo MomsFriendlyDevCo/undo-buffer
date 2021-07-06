@@ -2,6 +2,14 @@ const debug = require('debug')('undo-buffer:main');
 const _ = require('lodash');
 const jsondiffpatch = require('jsondiffpatch');
 
+/**
+ * UndoBuffer
+ *
+ * @type {class}
+ * @param {Object} [settings] Configuration options
+ * @param {Number} [settings.limit] Length of undo window
+ * @param {Function} [settings.objectHash] Callback to map arrays of objects by internal keys rather than array index position
+ */
 const UndoBuffer = function (settings) {
 	this.forward = [];
 	this.reverse = [];
@@ -16,11 +24,18 @@ const UndoBuffer = function (settings) {
 		objectHash: this.config.objectHash,
 	});
 
+	/**
+	 * Record a variable modification
+	 *
+	 * @type {method}
+	 * @param {Object} newVal Changed value as reported by watchers
+	 * @param {Object} [oldVal] Previous value before change
+	 */
 	this.update = (newVal, oldVal) => {
 		if (!this.enabled) return;
 		if (!oldVal) return;
 
-		debug('UndoBuffer.update', newVal, oldVal);
+		console.log('UndoBuffer.update', newVal, oldVal);
 
 		// FIXME: jsondiffpatch dateReviver needed for handling any date fields?
 		const delta = this._jsondiffpatch.diff(newVal, oldVal);
@@ -33,7 +48,12 @@ const UndoBuffer = function (settings) {
 		}
 	};
 
-
+	/**
+	 * Execute an undo action
+	 *
+	 * @type {method}
+	 * @param {Object} doc The current state to patch
+	 */
 	this.undo = doc => {
 		if (!doc) return;
 		if (!this.reverse.filter(d => d).length) return doc;
@@ -50,7 +70,12 @@ const UndoBuffer = function (settings) {
 		return this._jsondiffpatch.patch(doc, delta);
 	};
 
-
+	/**
+	 * Execute a redo action
+	 *
+	 * @type {method}
+	 * @param {Object} doc The current state to patch
+	 */
 	this.redo = doc => {
 		if (!doc) return;
 		if (!this.forward.filter(d => d).length) return doc;
