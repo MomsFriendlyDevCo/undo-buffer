@@ -2,7 +2,7 @@
   "name": "undo-buffer",
   "version": "0.0.1",
   "description": "",
-  "main": "index.js",
+  "main": "dist/main.js",
   "scripts": {
     "test": "mocha"
   },
@@ -13,12 +13,13 @@
   },
   "homepage": "https://github.com/MomsFriendlyDevCo/undo-buffer",
   "devDependencies": {
+    "babel-loader": "^8.2.2",
     "chai": "^4.3.4",
-    "mocha": "^9.0.1"
+    "mocha": "^9.0.1",
+    "webpack": "^5.44.0",
+    "webpack-cli": "^4.7.2"
   },
   "dependencies": {
-    "debug": "^4.3.1",
-    "jsondiffpatch": "^0.4.1",
-    "lodash": "^4.17.21"
+    "jsondiffpatch": "^0.4.1"
   }
 }

@@ -1,5 +1,4 @@
 const debug = require('debug')('undo-buffer:main');
-const _ = require('lodash');
 const jsondiffpatch = require('jsondiffpatch');
 
 /**
@@ -15,10 +14,17 @@ const UndoBuffer = function (settings) {
 	this.reverse = [];
 	this.enabled = true;
 
-	this.config = _.defaults(settings, {
+	this.config = {
 		limit: 10,
 		objectHash: undefined,
+		...settings,
+	};
+
+	this._worker = new Worker('./worker.js', { type: 'module' });
+	this._worker.addEventListener('message', e => {
+		console.log('UndoBuffer message', e);
 	});
+	console.log('worker', this._worker);
 
 	this._jsondiffpatch = jsondiffpatch.create({
 		objectHash: this.config.objectHash,
@@ -40,11 +46,13 @@ const UndoBuffer = function (settings) {
 		// FIXME: jsondiffpatch dateReviver needed for handling any date fields?
 		const delta = this._jsondiffpatch.diff(newVal, oldVal);
 		if (delta) {
-			debug('delta', JSON.stringify(delta, null, 2));
+			this._worker.postMessage({opcode: 'update', data: [newVal, oldVal]});
+
+			//console.log('delta', JSON.stringify(delta, null, 2));
 			this.reverse.unshift(delta);
 			this.reverse.length = this.config.limit;
-			//this.forward = []; // TODO: Invalidate forward redo when new state comes in?
-			debug('queues', this.reverse.length, this.forward.length);
+			this.forward = []; // Invalidate forward redo when new state comes in
+			console.log('queues', this.reverse.filter(d => d).length, this.forward.filter(d => d).length);
 		}
 	};
 
