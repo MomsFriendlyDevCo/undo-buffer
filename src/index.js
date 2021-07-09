@@ -1,9 +1,5 @@
 const jsondiffpatch = require('jsondiffpatch');
 const Worker = require('./worker.js');
-//const Worker = require('worker-loader!./worker.js').default;
-
-//import * as jsondiffpatch from 'jsondiffpatch';
-//import Worker from './worker';
 
 /**
  * UndoBuffer
@@ -24,14 +20,10 @@ const UndoBuffer = function (settings) {
 		...settings,
 	};
 
-	//this._worker = new Worker('./worker.js', { type: 'module' });
-	//this._worker = new Worker(new URL('./worker.js', import.meta.url));
-	//console.log('Worker', Worker, typeof Worker)
 	this._worker = new Worker();
-	this._worker.addEventListener('message', e => {
-		console.log('UndoBuffer message', e);
-	});
-	console.log('worker', this._worker);
+	//this._worker.addEventListener('message', e => {
+	//	console.log('UndoBuffer message', e);
+	//});
 
 	this._jsondiffpatch = jsondiffpatch.create({
 		objectHash: this.config.objectHash,
@@ -73,12 +65,12 @@ const UndoBuffer = function (settings) {
 		if (!doc) return;
 		if (!this.reverse.filter(d => d).length) return doc;
 
-		debug('UndoBuffer.undo', doc, this.reverse.filter(d => d).length);
+		console.log('UndoBuffer.undo', doc, this.reverse.filter(d => d).length);
 
 		const delta = this.reverse.shift();
 		this.forward.unshift(delta);
-		debug('delta', JSON.stringify(delta, null, 2));
-		debug('queues', this.reverse.length, this.forward.length);
+		console.log('delta', JSON.stringify(delta, null, 2));
+		console.log('queues', this.reverse.length, this.forward.length);
 
 		// FIXME: Validate delta?
 
@@ -95,12 +87,12 @@ const UndoBuffer = function (settings) {
 		if (!doc) return;
 		if (!this.forward.filter(d => d).length) return doc;
 
-		debug('UndoBuffer.redo', doc, this.forward.filter(d => d).length);
+		console.log('UndoBuffer.redo', doc, this.forward.filter(d => d).length);
 
 		const delta = this.forward.shift();
 		this.reverse.unshift(delta);
-		debug('delta', JSON.stringify(delta, null, 2));
-		debug('queues', this.reverse.length, this.forward.length);
+		console.log('delta', JSON.stringify(delta, null, 2));
+		console.log('queues', this.reverse.length, this.forward.length);
 
 		// FIXME: Validate delta?
 
@@ -108,5 +100,4 @@ const UndoBuffer = function (settings) {
 	};
 };
 
-//export { UndoBuffer as default };
 module.exports = UndoBuffer;
