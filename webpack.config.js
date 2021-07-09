@@ -1,18 +1,27 @@
 const path = require('path');
 
 module.exports = {
-	mode: (process.env.NODE_ENV === 'production') ? 'production' : 'development',
-	/*
-	entry: './src/index.js',
+	mode: 'development',
 	output: {
-		//globalObject: 'this',
-		//libraryTarget: 'umd',
 		path: path.resolve(__dirname, 'dist'),
 		filename: 'main.js',
+		library: {
+			name: 'UndoBuffer',
+			type: 'umd',
+		},
+		publicPath: '/undo-buffer/',
 	},
-	*/
 	module: {
 		rules: [
+			{
+				test: /worker\.js$/,
+				loader: require.resolve('worker-loader'),
+				options: {
+					esModule: false,
+					//inline: 'no-fallback',
+					publicPath: '/undo-buffer/',
+				},
+			},
 			{
 				test: /\.js$/,
 				exclude: /node_modules/,

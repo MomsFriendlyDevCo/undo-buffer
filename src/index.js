@@ -1,5 +1,9 @@
-const debug = require('debug')('undo-buffer:main');
 const jsondiffpatch = require('jsondiffpatch');
+const Worker = require('./worker.js');
+//const Worker = require('worker-loader!./worker.js').default;
+
+//import * as jsondiffpatch from 'jsondiffpatch';
+//import Worker from './worker';
 
 /**
  * UndoBuffer
@@ -20,7 +24,10 @@ const UndoBuffer = function (settings) {
 		...settings,
 	};
 
-	this._worker = new Worker('./worker.js', { type: 'module' });
+	//this._worker = new Worker('./worker.js', { type: 'module' });
+	//this._worker = new Worker(new URL('./worker.js', import.meta.url));
+	//console.log('Worker', Worker, typeof Worker)
+	this._worker = new Worker();
 	this._worker.addEventListener('message', e => {
 		console.log('UndoBuffer message', e);
 	});
@@ -101,4 +108,5 @@ const UndoBuffer = function (settings) {
 	};
 };
 
+//export { UndoBuffer as default };
 module.exports = UndoBuffer;
