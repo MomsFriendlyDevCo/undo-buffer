@@ -17,10 +17,7 @@ const undoBuffer = new UndoBuffer({
     },
 });
 
-const observe = { a: 'foo', b: 'bar' };
-undoBuffer.add(observe);
-observe.a = 'bar';
-delete observe.b;
+undoBuffer.update({ a: 'baz' }, { a: 'foo', b: 'bar' });
 undoBuffer.undo(observe);
 undoBuffer.undo(observe);
 undoBuffer.redo(observe);
