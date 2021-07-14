@@ -3,6 +3,7 @@ const jsondiffpatch = require('jsondiffpatch');
 const forward = [];
 const reverse = [];
 const updates = [];
+let timer;
 
 const config = {
 	interval: 500,
@@ -28,6 +29,13 @@ const processor = jsondiffpatch.create({
 const undo = doc => {
 	if (!doc) return;
 	if (!reverse.filter(d => d).length) return doc;
+
+	// Finish processing pending queue before applying changes
+	if (updates.length > 0) {
+		clearTimeout(timer);
+		while (updates.length > 0) doWork(false);
+		timer = setTimeout(doWork, config.interval);
+	}
 
 	const delta = reverse.shift();
 	forward.unshift(delta);
@@ -57,9 +65,9 @@ const redo = doc => {
 // }}}
 
 // Background thread {{{
-const doWork = () => {
+const doWork = (background = true) => {
 	if (!updates || !updates.length > 0)
-		return setTimeout(doWork, config.interval);
+		return background??timer = setTimeout(doWork, config.interval);
 
 	const change = updates.shift();
 	console.log('change', change);
@@ -72,9 +80,9 @@ const doWork = () => {
 		console.log('queues', updates.length, reverse.filter(d => d).length, forward.filter(d => d).length);
 	}
 
-	setTimeout(doWork, config.interval);
+	background??timer = setTimeout(doWork, config.interval);
 };
-setTimeout(doWork, config.interval);
+timer = setTimeout(doWork, config.interval);
 // }}}
 
 /*
