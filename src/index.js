@@ -31,7 +31,6 @@ const UndoBuffer = function (settings) {
 		if (!this.enabled) return;
 		if (!oldVal) return;
 
-		console.log('UndoBuffer.update', newVal, oldVal);
 		this._worker.postMessage({opcode: 'update', data: [newVal, oldVal]});
 	};
 
@@ -46,11 +45,9 @@ const UndoBuffer = function (settings) {
 
 		// TODO: Reject on messaging timeout or error
 		return new Promise((resolve, reject) => {
-			console.log('UndoBuffer.undo', doc);
 			const workerResponse = e => {
 				if (e.data.opcode !== 'undone') return resolve();
 
-				console.log('UndoBuffer response', e);
 				this._worker.removeEventListener('message', workerResponse);
 				resolve(e.data.data);
 			};
@@ -70,11 +67,9 @@ const UndoBuffer = function (settings) {
 
 		// TODO: Reject on messaging timeout or error
 		return new Promise((resolve, reject) => {
-			console.log('UndoBuffer.redo', doc);
 			const workerResponse = e => {
 				if (e.data.opcode !== 'redone') return resolve();
 				
-				console.log('UndoBuffer response', e);
 				this._worker.removeEventListener('message', workerResponse);
 				resolve(e.data.data);
 			};

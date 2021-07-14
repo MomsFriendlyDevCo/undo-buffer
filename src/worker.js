@@ -31,14 +31,11 @@ const doWork = (background = true) => {
 		return background ? timer = setTimeout(doWork, config.interval) : undefined;
 
 	const change = updates.shift();
-	//console.log('change', change);
 	const delta = processor.diff(...change);
 	if (delta) {
-		//console.log('delta', JSON.stringify(delta, null, 2));
 		reverse.unshift(delta);
 		reverse.length = config.limit;
 		forward.length = 0; // Invalidate forward redo when new state comes in
-		console.log('queues', updates.length, reverse.filter(d => d).length, forward.filter(d => d).length);
 	}
 
 	if (background) setTimeout(doWork, config.interval);
@@ -50,7 +47,7 @@ timer = setTimeout(doWork, config.interval);
 const sync = () => {
 	if (!updates.length > 0) return;
 
-	console.log('pending', updates.length);
+	console.log('UndoWorker pending', updates.length);
 	clearTimeout(timer);
 	while (updates.length > 0) doWork(false);
 	timer = setTimeout(doWork, config.interval);
@@ -61,14 +58,8 @@ const undo = doc => {
 	sync();
 	if (!reverse.filter(d => d).length) return doc;
 
-	console.log('UndoBuffer.undo', reverse.filter(d => d).length);
-
 	const delta = reverse.shift();
 	forward.unshift(delta);
-	//console.log('delta', JSON.stringify(delta, null, 2));
-	console.log('queues', updates.length, reverse.length, forward.length);
-
-	// FIXME: Validate delta?
 
 	return processor.patch(doc, delta);
 };
@@ -78,32 +69,14 @@ const redo = doc => {
 	sync();
 	if (!forward.filter(d => d).length) return doc;
 
-	console.log('UndoBuffer.redo', forward.filter(d => d).length);
-
 	const delta = forward.shift();
 	reverse.unshift(delta);
-	//console.log('delta', JSON.stringify(delta, null, 2));
-	console.log('queues', updates.length, reverse.length, forward.length);
-
-	// FIXME: Validate delta?
 
 	return processor.unpatch(doc, delta);
 };
 // }}}
 
-
-/*
-addEventListener('install', e => {
-	console.log('ServiceWorker.install', e);
-});
-
-addEventListener('activate', e => {
-	console.log('ServiceWorker.activate', e);
-});
-*/
-
 addEventListener('message', e => {
-	console.log('ServiceWorker.message', e);
 	switch (e.data.opcode) {
 		case 'update':
 			updates.push(e.data.data);
@@ -115,5 +88,5 @@ addEventListener('message', e => {
 			postMessage({ opcode: 'redone', data: redo(e.data.data) });
 			break;
 	}
-	console.log('queues', updates.length, reverse.filter(d => d).length, forward.filter(d => d).length);
+	console.log('UndoWorker queues', updates.length, reverse.filter(d => d).length, forward.filter(d => d).length);
 });
