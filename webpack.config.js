@@ -18,7 +18,9 @@ module.exports = {
 				loader: require.resolve('worker-loader'),
 				options: {
 					esModule: false,
+					// TODO: Inline inclusion is possible although a SHA256 will be needed for CSP.
 					//inline: 'no-fallback',
+					// Using publicPath means CSP "worker-src: 'self'" is suffienct.
 					publicPath: '/undo-buffer/',
 				},
 			},
