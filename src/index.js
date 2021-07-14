@@ -1,4 +1,3 @@
-const jsondiffpatch = require('jsondiffpatch');
 const Worker = require('./worker.js');
 
 /**
@@ -10,24 +9,16 @@ const Worker = require('./worker.js');
  * @param {Function} [settings.objectHash] Callback to map arrays of objects by internal keys rather than array index position
  */
 const UndoBuffer = function (settings) {
-	this.forward = [];
-	this.reverse = [];
 	this.enabled = true;
 
 	this.config = {
-		limit: 10,
-		objectHash: undefined,
+		// TODO: Pass these through to the worker.
+		//limit: 10,
+		//objectHash: undefined,
 		...settings,
 	};
 
 	this._worker = new Worker();
-	//this._worker.addEventListener('message', e => {
-	//	console.log('UndoBuffer message', e);
-	//});
-
-	this._jsondiffpatch = jsondiffpatch.create({
-		objectHash: this.config.objectHash,
-	});
 
 	/**
 	 * Record a variable modification
@@ -41,18 +32,7 @@ const UndoBuffer = function (settings) {
 		if (!oldVal) return;
 
 		console.log('UndoBuffer.update', newVal, oldVal);
-
-		// FIXME: jsondiffpatch dateReviver needed for handling any date fields?
-		const delta = this._jsondiffpatch.diff(newVal, oldVal);
-		if (delta) {
-			this._worker.postMessage({opcode: 'update', data: [newVal, oldVal]});
-
-			//console.log('delta', JSON.stringify(delta, null, 2));
-			this.reverse.unshift(delta);
-			this.reverse.length = this.config.limit;
-			this.forward = []; // Invalidate forward redo when new state comes in
-			console.log('queues', this.reverse.filter(d => d).length, this.forward.filter(d => d).length);
-		}
+		this._worker.postMessage({opcode: 'update', data: [newVal, oldVal]});
 	};
 
 	/**
@@ -62,19 +42,21 @@ const UndoBuffer = function (settings) {
 	 * @param {Object} doc The current state to patch
 	 */
 	this.undo = doc => {
-		if (!doc) return;
-		if (!this.reverse.filter(d => d).length) return doc;
+		if (!doc) return Promise.resolve();
 
-		console.log('UndoBuffer.undo', doc, this.reverse.filter(d => d).length);
+		// TODO: Reject on messaging timeout or error
+		return new Promise((resolve, reject) => {
+			console.log('UndoBuffer.undo', doc);
+			const workerResponse = e => {
+				if (e.data.opcode !== 'undone') return resolve();
 
-		const delta = this.reverse.shift();
-		this.forward.unshift(delta);
-		console.log('delta', JSON.stringify(delta, null, 2));
-		console.log('queues', this.reverse.length, this.forward.length);
-
-		// FIXME: Validate delta?
-
-		return this._jsondiffpatch.patch(doc, delta);
+				console.log('UndoBuffer response', e);
+				this._worker.removeEventListener('message', workerResponse);
+				resolve(e.data.data);
+			};
+			this._worker.addEventListener('message', workerResponse);
+			this._worker.postMessage({opcode: 'undo', data: doc});
+		});
 	};
 
 	/**
@@ -84,19 +66,21 @@ const UndoBuffer = function (settings) {
 	 * @param {Object} doc The current state to patch
 	 */
 	this.redo = doc => {
-		if (!doc) return;
-		if (!this.forward.filter(d => d).length) return doc;
+		if (!doc) return Promise.resolve();
 
-		console.log('UndoBuffer.redo', doc, this.forward.filter(d => d).length);
-
-		const delta = this.forward.shift();
-		this.reverse.unshift(delta);
-		console.log('delta', JSON.stringify(delta, null, 2));
-		console.log('queues', this.reverse.length, this.forward.length);
-
-		// FIXME: Validate delta?
-
-		return this._jsondiffpatch.unpatch(doc, delta);
+		// TODO: Reject on messaging timeout or error
+		return new Promise((resolve, reject) => {
+			console.log('UndoBuffer.redo', doc);
+			const workerResponse = e => {
+				if (e.data.opcode !== 'redone') return resolve();
+				
+				console.log('UndoBuffer response', e);
+				this._worker.removeEventListener('message', workerResponse);
+				resolve(e.data.data);
+			};
+			this._worker.addEventListener('message', workerResponse);
+			this._worker.postMessage({opcode: 'redo', data: doc});
+		});
 	};
 };
 
